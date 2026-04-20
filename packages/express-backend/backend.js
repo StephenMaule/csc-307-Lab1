@@ -11,11 +11,24 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
+//Generates random large ish (5 digit) integer as an id 
+function generateID(){
+  return Math.floor(Math.random() * 10000).toString();
+}
+
 app.post("/users", (req, res) => {
-  const userToAdd = req.body;
+
+  const userToAdd = {
+	  id: generateID(),
+	  ...req.body
+  };
+
   addUser(userToAdd);
-  res.send();
+
+
+  res.status(201).send(userToAdd);
 });
+
 
 const findUserByNameAndJob = (name, job) => {
   return users.users_list.filter(
@@ -46,7 +59,7 @@ const deleteUserById = (id) => {
 };
 
 app.get("/users/:id", (req, res) => {
-  const id = req.params["id"]; //or req.params.id
+  const id = req.params["id"]; 
   let result = findUserById(id);
   if (result === undefined) {
     res.status(404).send("Resource not found.");
@@ -69,15 +82,15 @@ app.get("/users", (req, res) => {
   }
 });
 
-app.delete("users/:id", (req,res) => {
-  const d = req.params.id;
-  const deleted = deletedUserById(id);
+app.delete("/users/:id", (req, res) => {
+  const id = req.params.id;
 
-  if(!deleted) { 
-     res.send("User not Found.");
-  }
-  else{
-    res.send("User deleted successfully.");
+  const deleted = deleteUserById(id);
+
+  if (!deleted) {
+    res.status(404).send("User not found");
+  } else {
+    res.status(204).send();
   }
 });
 
