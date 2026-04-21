@@ -57,7 +57,7 @@ function MyApp() {
     })
       .then(res => {
         if (res.status === 201) {
-          return res.json(); // ✅ THIS is what you were missing
+          return res.json();
         } else {
           throw new Error("Failed to create user");
         }
