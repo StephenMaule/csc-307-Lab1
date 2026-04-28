@@ -1,5 +1,18 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
+import userServices from "./services/user-service.js";
+
+const { MONGO_CONNECTION_STRING } = process.env;
+
+console.log("MONGO STRING:", MONGO_CONNECTION_STRING);
+
+mongoose.set("debug", true);
+mongoose.connect(process.env.MONGO_CONNECTION_STRING + "users")
+  .catch(err => console.log("MongoDB connection failed:", err));
 
 const app = express();
 const port = 8000;
@@ -11,128 +24,51 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-//Generates random large ish (5 digit) integer as an id 
-function generateID(){
-  return Math.floor(Math.random() * 10000).toString();
-}
-
-app.post("/users", (req, res) => {
-
-  const userToAdd = {
-	  id: generateID(),
-	  ...req.body
-  };
-
-  addUser(userToAdd);
-
-
-  res.status(201).send(userToAdd);
+app.post("/users", async (req, res) => {
+  try {
+    const user = await userServices.addUser(req.body);
+    res.status(201).json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-
-const findUserByNameAndJob = (name, job) => {
-  return users.users_list.filter(
-    (user) => user.name === name && user.job === job
-  );
-};
-
-const findUserByName = (name) => {
-  return users["users_list"].filter(
-    (user) => user["name"] === name
-  );
-};
-
-const findUserById = (id) =>
-  users["users_list"].find((user) => user["id"] === id);
-
-const addUser = (user) => {
-  users["users_list"].push(user);
-  return user;
-};
-
-const deleteUserById = (id) => {
-  const index = users.users_list.findIndex((user) => user.id === id);
-  if(index === -1) return false;
-
-  users.users_list.splice(index, 1);
-  return true;
-};
+app.get("/users", async (req, res) => {
+  try {
+    const { name, job } = req.query;
+    const users = await userServices.getUsers(name, job);
+    res.json({ users_list: users });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get("/users/:id", (req, res) => {
-  const id = req.params["id"]; 
-  let result = findUserById(id);
-  if (result === undefined) {
-    res.status(404).send("Resource not found.");
-  } else {
-    res.send(result);
-  }
-});
-
-app.get("/users", (req, res) => {
-  const { name, job } = req.query;
-
-  if (name && job) {
-    const result = findUserByNameAndJob(name, job);
-    res.send({ users_list: result });
-  } else if (name) {
-    const result = findUserByName(name);
-    res.send({ users_list: result });
-  } else {
-    res.send(users);
-  }
+  userServices.findUserById(req.params.id)
+    .then((user) => {
+      if (!user) return res.status(404).send("Not found");
+      res.json(user);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    });
 });
 
 app.delete("/users/:id", (req, res) => {
-  const id = req.params.id;
-
-  const deleted = deleteUserById(id);
-
-  if (!deleted) {
-    res.status(404).send("User not found");
-  } else {
-    res.status(204).send();
-  }
+  deleteUser(req.params.id)
+    .then(() => {
+      res.status(200).send("Deleted");
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).send("Error deleting user");
+    });
 });
 
-app.listen(port, () => {
-  console.log(
-    `Example app listening at http://localhost:${port}`
-  );
+app.listen(8000, () => {
+  console.log("Server running on port 8000");
 });
 
-
-
-const users = {
-  users_list: [
-    {
-      id: "xyz789",
-      name: "Charlie",
-      job: "Janitor"
-    },
-    {
-      id: "abc123",
-      name: "Mac",
-      job: "Bouncer"
-    },
-    {
-      id: "ppp222",
-      name: "Mac",
-      job: "Professor"
-    },
-    {
-      id: "yat999",
-      name: "Dee",
-      job: "Aspring actress"
-    },
-    {
-      id: "zap555",
-      name: "Dennis",
-      job: "Bartender"
-    },
-    {
-      "id": "qwe123",
-      "job": "Zookeeper",
-      "name": "Cindy"
-    }
-  ]
-};

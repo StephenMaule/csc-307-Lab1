@@ -7,40 +7,37 @@ function MyApp() {
   const [characters, setCharacters] = useState([]);
 
   useEffect(() => {
-    fetchUsers()
+    fetch("http://localhost:8000/users")
       .then((res) => res.json())
-      .then((json) => setCharacters(json["users_list"]))
-      .catch((error) => {
-        console.log(error);
-      });
+      .then((json) => setCharacters(json.users_list || []))
+      .catch(console.log);
   }, []);
 
-
-  function removeOneCharacter(id) {
+  const removeOneCharacter = (id) => {
     fetch(`http://localhost:8000/users/${id}`, {
       method: "DELETE",
+    })
+      .then(() => {
+        setCharacters((prevUsers) =>
+          prevUsers.filter((user) => user._id !== id)
+        );
       })
-      .then(res => {
-        if (res.status === 204) {
-          setCharacters(prev =>
-            prev.filter(user => user.id !== id)
-          );
-        } else if (res.status === 404) {
-          console.error("User not found");
-        }
-      })
-      .catch(err => console.error(err));
-  }
+      .catch((err) => console.log(err));
+  };
 
   function updateList(person) {
-   postUser(person)
-    .then((newUsr) => {
-      setCharacters(prev => [...prev, newUsr]);
+    fetch("http://localhost:8000/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(person),
     })
-    .catch((error) => {
-      console.log(error);
-    }); 
+      .then((res) => res.json())
+      .then((newUser) => {
+        setCharacters((prev) => [...prev, newUser]);
+      })
+      .catch(console.log);
   }
+
 
   function fetchUsers() {
   	const promise = fetch("http://localhost:8000/users");
@@ -48,7 +45,8 @@ function MyApp() {
   }
 
   function postUser(person) {
-    return fetch("http://localhost:8000/users", {
+      console.log("SENDING TO BACKEND:", person); 
+      return fetch("http://localhost:8000/users", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

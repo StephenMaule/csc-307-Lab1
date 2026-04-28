@@ -7,12 +7,14 @@ function Form(props) {
     job: ""
   });
 
-
   function handleChange(event) {
+  
     const { name, value } = event.target;
-    if (name === "job")
-      setPerson({ name: person["name"], job: value });
-    else setPerson({ name: value, job: person["job"] });
+  
+    setPerson((prev) => ({
+      ...prev,
+      [name]: value
+    }));
   }
 
   function submitForm() {
